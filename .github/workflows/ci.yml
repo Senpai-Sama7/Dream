@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  build-test:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+      
+      - name: Install dependencies
+        run: |
+          npm install
+      
+      - name: Lint
+        run: |
+          npm run lint --workspaces --if-present || echo "Lint completed with warnings"
+      
+      - name: Type check
+        run: |
+          npm run build --workspaces --if-present
+      
+      - name: Unit tests
+        run: |
+          npm run test --workspaces --if-present
+
+  compose-integration:
+    name: Docker Compose Integration
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Build and start services
+        run: |
+          docker compose -f dev/compose/docker-compose.yml up -d --build
+      
+      - name: Wait for services
+        run: |
+          echo "Waiting for services to be healthy..."
+          sleep 45
+      
+      - name: Check service health
+        run: |
+          echo "Checking backend health..."
+          curl -f http://localhost:8080/api/health || exit 1
+          
+          echo "Checking planner health..."
+          curl -f http://localhost:8090/health || exit 1
+          
+          echo "Checking sandbox health..."
+          curl -f http://localhost:8070/health || exit 1
+          
+          echo "Checking frontend..."
+          curl -f http://localhost:3000 || exit 1
+      
+      - name: Check metrics endpoints
+        run: |
+          echo "Checking backend metrics..."
+          curl -f http://localhost:8080/metrics || exit 1
+          
+          echo "Checking planner metrics..."
+          curl -f http://localhost:8090/metrics || exit 1
+      
+      - name: Show service logs
+        if: failure()
+        run: |
+          docker compose -f dev/compose/docker-compose.yml logs
+      
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose -f dev/compose/docker-compose.yml down -v
+
+  security-scan:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '0'
+      
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'

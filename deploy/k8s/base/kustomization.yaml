@@ -1,0 +1,27 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: dream
+
+resources:
+  - namespace.yaml
+  - backend.yaml
+  - planner.yaml
+  - sandbox.yaml
+  - frontend.yaml
+  - networkpolicies.yaml
+  - podsecurity.yaml
+
+commonLabels:
+  app.kubernetes.io/name: dream
+  app.kubernetes.io/part-of: dream-system
+
+images:
+  - name: ghcr.io/senpai-sama7/dream-backend
+    newTag: latest
+  - name: ghcr.io/senpai-sama7/dream-planner
+    newTag: latest
+  - name: ghcr.io/senpai-sama7/dream-sandbox
+    newTag: latest
+  - name: ghcr.io/senpai-sama7/dream-frontend
+    newTag: latest
