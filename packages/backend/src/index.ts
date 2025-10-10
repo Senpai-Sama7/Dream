@@ -5,12 +5,17 @@ import rateLimit from 'express-rate-limit';
 import { appRouter } from './routes/apps';
 import { healthRouter } from './routes/health';
 import { Database } from './db/database';
+import { startTelemetry, metricsRegistry, requestCounter } from '@dream/observability';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 8000;
+
+// Start telemetry
+startTelemetry('backend');
+const reqCounter = requestCounter();
 
 // Initialize database
 Database.getInstance();
@@ -50,6 +55,24 @@ const writeRateLimit = rateLimit({
 
 // Body parser with size limits
 app.use(express.json({ limit: '10mb' }));
+
+// Request counting middleware
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    reqCounter.inc({
+      method: req.method,
+      route: req.route?.path || req.path,
+      status: res.statusCode.toString()
+    });
+  });
+  next();
+});
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', metricsRegistry.contentType);
+  res.end(await metricsRegistry.metrics());
+});
 
 // Routes
 app.use('/api/apps', writeRateLimit, appRouter);

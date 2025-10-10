@@ -42,3 +42,6 @@ packages/data/
 packages/sandbox/runtime/
 packages/*/data/
 packages/*/runtime/
+
+# Generated code
+packages/contracts/gen/
