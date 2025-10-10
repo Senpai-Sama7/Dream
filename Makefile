@@ -1,10 +1,10 @@
-.PHONY: help install dev build test clean smoke-test
+.PHONY: help install dev build test clean smoke-test docker-up docker-down docker-logs k8s-deploy k8s-status k8s-delete contracts-gen
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
 	@echo ''
 	@echo 'Available targets:'
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-15s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-20s %s\n", $$1, $$2}'
 
 install: ## Install all dependencies
 	@echo "Installing dependencies..."
@@ -39,3 +39,36 @@ clean: ## Clean build artifacts and dependencies
 smoke-test: ## Run smoke test for CSV viewer
 	@echo "Running smoke test for CSV viewer..."
 	cd packages/backend && npm run test:smoke
+
+docker-up: ## Start all services with Docker Compose
+	@echo "Starting services with Docker Compose..."
+	docker compose -f dev/compose/docker-compose.yml up -d
+
+docker-down: ## Stop all Docker Compose services
+	@echo "Stopping Docker Compose services..."
+	docker compose -f dev/compose/docker-compose.yml down
+
+docker-logs: ## View Docker Compose logs
+	@echo "Viewing Docker Compose logs..."
+	docker compose -f dev/compose/docker-compose.yml logs -f
+
+docker-build: ## Build Docker images
+	@echo "Building Docker images..."
+	docker compose -f dev/compose/docker-compose.yml build
+
+k8s-deploy: ## Deploy to Kubernetes
+	@echo "Deploying to Kubernetes..."
+	kubectl apply -k deploy/k8s/base/
+
+k8s-status: ## Check Kubernetes deployment status
+	@echo "Checking Kubernetes status..."
+	kubectl get pods -n dream
+	kubectl get services -n dream
+
+k8s-delete: ## Delete Kubernetes deployment
+	@echo "Deleting Kubernetes deployment..."
+	kubectl delete -k deploy/k8s/base/
+
+contracts-gen: ## Generate code from protobuf contracts
+	@echo "Generating contracts..."
+	cd packages/contracts && make gen
