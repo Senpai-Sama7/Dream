@@ -1,0 +1,39 @@
+{
+  "name": "@dream/backend",
+  "version": "1.0.0",
+  "description": "Dream Backend API Server",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "test": "jest",
+    "test:smoke": "jest --testMatch='**/tests/smoke.test.ts'",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "better-sqlite3": "^9.2.2",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/uuid": "^9.0.7",
+    "@types/node": "^20.10.6",
+    "@types/jest": "^29.5.11",
+    "typescript": "^5.3.3",
+    "ts-node-dev": "^2.0.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/parser": "^6.17.0",
+    "@typescript-eslint/eslint-plugin": "^6.17.0",
+    "supertest": "^6.3.3",
+    "@types/supertest": "^6.0.2"
+  }
+}
