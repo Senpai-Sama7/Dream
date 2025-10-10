@@ -27,8 +27,13 @@ describe('SandboxManager', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    jest.clearAllTimers();
     mockExistsSync.mockReturnValue(false);
     sandboxManager = new SandboxManager();
+  });
+
+  afterEach(() => {
+    jest.clearAllTimers();
   });
 
   describe('constructor', () => {

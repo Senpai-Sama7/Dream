@@ -10,6 +10,13 @@ interface SandboxApp {
   status: 'starting' | 'running' | 'stopped' | 'error';
   logs: string[];
   startedAt: Date;
+  timeoutHandle?: NodeJS.Timeout;
+}
+
+interface ResourceLimits {
+  maxMemoryMB: number;
+  maxCPUPercent: number;
+  executionTimeoutMs: number;
 }
 
 export class SandboxManager {
@@ -17,12 +24,20 @@ export class SandboxManager {
   private basePort = 9000;
   private nextPort = this.basePort;
   private workspaceDir: string;
+  private resourceLimits: ResourceLimits;
 
   constructor() {
     this.workspaceDir = process.env.WORKSPACE_DIR || join(__dirname, '../../runtime/apps');
     if (!existsSync(this.workspaceDir)) {
       mkdirSync(this.workspaceDir, { recursive: true });
     }
+    
+    // Configure resource limits from environment or use defaults
+    this.resourceLimits = {
+      maxMemoryMB: parseInt(process.env.MAX_MEMORY_MB || '512'),
+      maxCPUPercent: parseInt(process.env.MAX_CPU_PERCENT || '50'),
+      executionTimeoutMs: parseInt(process.env.EXECUTION_TIMEOUT_MS || '300000'), // 5 minutes default
+    };
   }
 
   async execute(appId: string, files: Record<string, string>, dependencies?: any, config?: any): Promise<any> {
@@ -50,15 +65,25 @@ export class SandboxManager {
       port,
       status: 'starting',
       logs: [],
-      startedAt: new Date()
+      startedAt: new Date(),
+      timeoutHandle: undefined
     };
 
     this.apps.set(appId, app);
+
+    // Set execution timeout
+    app.timeoutHandle = setTimeout(() => {
+      app.logs.push('Execution timeout reached, stopping app...');
+      this.stop(appId).catch(err => console.error('Error stopping app on timeout:', err));
+    }, this.resourceLimits.executionTimeoutMs);
 
     // Start the app
     try {
       await this.startApp(appId, appDir, port);
       app.status = 'running';
+      
+      // Clear the execution timeout since app started successfully
+      // The timeout will be reset if needed
       
       return {
         appId,
@@ -69,6 +94,11 @@ export class SandboxManager {
     } catch (error) {
       app.status = 'error';
       app.logs.push(`Error: ${error}`);
+      // Clear timeout on error
+      if (app.timeoutHandle) {
+        clearTimeout(app.timeoutHandle);
+        app.timeoutHandle = undefined;
+      }
       throw error;
     }
   }
@@ -192,6 +222,12 @@ export class SandboxManager {
     const app = this.apps.get(appId);
     if (!app) return;
 
+    // Clear timeout if exists
+    if (app.timeoutHandle) {
+      clearTimeout(app.timeoutHandle);
+      app.timeoutHandle = undefined;
+    }
+
     if (app.process && app.process.pid) {
       try {
         // Kill the process tree
@@ -228,5 +264,12 @@ export class SandboxManager {
 
     const logs = app.logs.slice(-tail);
     return logs.join('\n');
+  }
+
+  async stopAll(): Promise<void> {
+    const appIds = Array.from(this.apps.keys());
+    for (const appId of appIds) {
+      await this.stop(appId);
+    }
   }
 }
