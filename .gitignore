@@ -36,3 +36,9 @@ coverage/
 tmp/
 temp/
 *.tmp
+
+# Runtime data
+packages/data/
+packages/sandbox/runtime/
+packages/*/data/
+packages/*/runtime/
