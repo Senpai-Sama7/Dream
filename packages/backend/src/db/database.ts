@@ -17,6 +17,7 @@ export interface App {
 export class Database {
   private static instance: Database;
   private db: BetterSqlite3.Database;
+  private checkpointInterval?: NodeJS.Timeout;
 
   private constructor() {
     const dataDir = join(__dirname, '../../../data');
@@ -25,7 +26,17 @@ export class Database {
     }
     const dbPath = process.env.DB_PATH || join(dataDir, 'dream.db');
     this.db = new BetterSqlite3(dbPath);
+    
+    // Enable WAL mode for better concurrency
+    this.db.pragma('journal_mode = WAL');
+    this.db.pragma('busy_timeout = 5000');
+    this.db.pragma('synchronous = NORMAL');
+    this.db.pragma('cache_size = 1000000000');
+    this.db.pragma('page_size = 4096');
+    this.db.pragma('temp_store = MEMORY');
+    
     this.initTables();
+    this.setupCheckpointing();
   }
 
   static getInstance(): Database {
@@ -52,6 +63,17 @@ export class Database {
       CREATE INDEX IF NOT EXISTS idx_apps_status ON apps(status);
       CREATE INDEX IF NOT EXISTS idx_apps_createdAt ON apps(createdAt DESC);
     `);
+  }
+
+  private setupCheckpointing() {
+    // Checkpoint WAL file every 5 minutes to prevent unbounded growth
+    this.checkpointInterval = setInterval(() => {
+      try {
+        this.db.pragma('wal_checkpoint(PASSIVE)');
+      } catch (error) {
+        console.error('Error during WAL checkpoint:', error);
+      }
+    }, 5 * 60 * 1000); // 5 minutes
   }
 
   getDb(): BetterSqlite3.Database {
@@ -124,5 +146,12 @@ export class Database {
     const stmt = this.db.prepare('DELETE FROM apps WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
+  }
+
+  close(): void {
+    if (this.checkpointInterval) {
+      clearInterval(this.checkpointInterval);
+    }
+    this.db.close();
   }
 }

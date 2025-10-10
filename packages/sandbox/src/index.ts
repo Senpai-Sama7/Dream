@@ -1,6 +1,14 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { SandboxManager } from './services/sandboxManager';
+import {
+  validateExecute,
+  validateUpdate,
+  validateAppId,
+  validateLogs
+} from './middleware/validation';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,17 +18,38 @@ const PORT = process.env.PORT || 8002;
 
 const sandboxManager = new SandboxManager();
 
-app.use(cors());
-app.use(express.json());
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false, // Sandbox doesn't serve HTML
+  crossOriginEmbedderPolicy: false,
+}));
 
-app.post('/execute', async (req: Request, res: Response) => {
+// CORS configuration based on environment
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
+    : ['http://localhost:8000', 'http://localhost:3000'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Rate limiting for execute operations
+const executeRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 50, // Limit each IP to 50 executions per windowMs
+  message: 'Too many execution requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Body parser with size limits
+app.use(express.json({ limit: '10mb' }));
+
+app.post('/execute', executeRateLimit, validateExecute, async (req: Request, res: Response) => {
   try {
     const { appId, files, dependencies, config } = req.body;
     
-    if (!appId || !files) {
-      return res.status(400).json({ error: 'appId and files are required' });
-    }
-
     const result = await sandboxManager.execute(appId, files, dependencies, config);
     res.status(201).json(result);
   } catch (error) {
@@ -29,7 +58,7 @@ app.post('/execute', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/apps/:appId', async (req: Request, res: Response) => {
+app.get('/apps/:appId', validateAppId, async (req: Request, res: Response) => {
   try {
     const status = await sandboxManager.getStatus(req.params.appId);
     
@@ -44,7 +73,7 @@ app.get('/apps/:appId', async (req: Request, res: Response) => {
   }
 });
 
-app.patch('/apps/:appId', async (req: Request, res: Response) => {
+app.patch('/apps/:appId', validateUpdate, async (req: Request, res: Response) => {
   try {
     const { files } = req.body;
     
@@ -61,7 +90,7 @@ app.patch('/apps/:appId', async (req: Request, res: Response) => {
   }
 });
 
-app.delete('/apps/:appId', async (req: Request, res: Response) => {
+app.delete('/apps/:appId', validateAppId, async (req: Request, res: Response) => {
   try {
     await sandboxManager.stop(req.params.appId);
     res.status(204).send();
@@ -71,7 +100,7 @@ app.delete('/apps/:appId', async (req: Request, res: Response) => {
   }
 });
 
-app.get('/apps/:appId/logs', async (req: Request, res: Response) => {
+app.get('/apps/:appId/logs', validateLogs, async (req: Request, res: Response) => {
   try {
     const tail = parseInt(req.query.tail as string) || 100;
     const logs = await sandboxManager.getLogs(req.params.appId, tail);

@@ -1,11 +1,19 @@
 import { Router, Request, Response } from 'express';
 import { AppController } from '../controllers/appController';
+import {
+  validateAppGeneration,
+  validateAppModification,
+  validateActionTracking,
+  validateApplySuggestion,
+  validateListApps,
+  validateGetApp
+} from '../middleware/validation';
 
 export const appRouter = Router();
 const controller = new AppController();
 
 // Generate new app
-appRouter.post('/generate', async (req: Request, res: Response) => {
+appRouter.post('/generate', validateAppGeneration, async (req: Request, res: Response) => {
   try {
     const { prompt, context } = req.body;
     
@@ -22,7 +30,7 @@ appRouter.post('/generate', async (req: Request, res: Response) => {
 });
 
 // List apps
-appRouter.get('/', (req: Request, res: Response) => {
+appRouter.get('/', validateListApps, (req: Request, res: Response) => {
   try {
     const limit = parseInt(req.query.limit as string) || 10;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -36,7 +44,7 @@ appRouter.get('/', (req: Request, res: Response) => {
 });
 
 // Get app
-appRouter.get('/:appId', (req: Request, res: Response) => {
+appRouter.get('/:appId', validateGetApp, (req: Request, res: Response) => {
   try {
     const app = controller.getApp(req.params.appId);
     
@@ -52,7 +60,7 @@ appRouter.get('/:appId', (req: Request, res: Response) => {
 });
 
 // Update app
-appRouter.patch('/:appId', async (req: Request, res: Response) => {
+appRouter.patch('/:appId', validateAppModification, async (req: Request, res: Response) => {
   try {
     const { prompt, changes } = req.body;
     
@@ -70,7 +78,7 @@ appRouter.patch('/:appId', async (req: Request, res: Response) => {
 });
 
 // Delete app
-appRouter.delete('/:appId', async (req: Request, res: Response) => {
+appRouter.delete('/:appId', validateGetApp, async (req: Request, res: Response) => {
   try {
     const success = await controller.deleteApp(req.params.appId);
     
@@ -86,7 +94,7 @@ appRouter.delete('/:appId', async (req: Request, res: Response) => {
 });
 
 // Track actions
-appRouter.post('/:appId/actions', async (req: Request, res: Response) => {
+appRouter.post('/:appId/actions', validateActionTracking, async (req: Request, res: Response) => {
   try {
     const { action, target, data } = req.body;
     
@@ -99,7 +107,7 @@ appRouter.post('/:appId/actions', async (req: Request, res: Response) => {
 });
 
 // Apply suggestions
-appRouter.post('/:appId/apply', async (req: Request, res: Response) => {
+appRouter.post('/:appId/apply', validateApplySuggestion, async (req: Request, res: Response) => {
   try {
     const { suggestionId } = req.body;
     

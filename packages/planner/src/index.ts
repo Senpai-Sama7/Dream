@@ -1,7 +1,10 @@
 import express, { Application, Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import { IntentAnalyzer } from './services/intentAnalyzer';
 import { CodeGenerator } from './services/codeGenerator';
+import { validateAnalyze, validateInfer } from './middleware/validation';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -12,16 +15,37 @@ const PORT = process.env.PORT || 8001;
 const analyzer = new IntentAnalyzer();
 const generator = new CodeGenerator();
 
-app.use(cors());
-app.use(express.json());
+// Security headers
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false,
+}));
 
-app.post('/analyze', async (req: Request, res: Response) => {
+// CORS configuration based on environment
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? (process.env.ALLOWED_ORIGINS || '').split(',').filter(Boolean)
+    : ['http://localhost:8000', 'http://localhost:3000'],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+app.use(cors(corsOptions));
+
+// Rate limiting
+const plannerRateLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // Limit each IP to 100 requests per windowMs
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Body parser with size limits
+app.use(express.json({ limit: '5mb' }));
+
+app.post('/analyze', plannerRateLimit, validateAnalyze, async (req: Request, res: Response) => {
   try {
     const { prompt, context } = req.body;
-    
-    if (!prompt) {
-      return res.status(400).json({ error: 'Prompt is required' });
-    }
 
     const intent = analyzer.analyze(prompt, context);
     const code = generator.generate(intent);
@@ -38,7 +62,7 @@ app.post('/analyze', async (req: Request, res: Response) => {
   }
 });
 
-app.post('/infer', async (req: Request, res: Response) => {
+app.post('/infer', plannerRateLimit, validateInfer, async (req: Request, res: Response) => {
   try {
     const { action, context, history } = req.body;
     
