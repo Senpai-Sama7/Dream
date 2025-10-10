@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import BetterSqlite3 from 'better-sqlite3';
 import { join } from 'path';
 import { mkdirSync, existsSync } from 'fs';
 
@@ -16,7 +16,7 @@ export interface App {
 
 export class Database {
   private static instance: Database;
-  private db: Database.Database;
+  private db: BetterSqlite3.Database;
 
   private constructor() {
     const dataDir = join(__dirname, '../../../data');
@@ -24,7 +24,7 @@ export class Database {
       mkdirSync(dataDir, { recursive: true });
     }
     const dbPath = process.env.DB_PATH || join(dataDir, 'dream.db');
-    this.db = new Database(dbPath);
+    this.db = new BetterSqlite3(dbPath);
     this.initTables();
   }
 
@@ -54,7 +54,7 @@ export class Database {
     `);
   }
 
-  getDb() {
+  getDb(): BetterSqlite3.Database {
     return this.db;
   }
 

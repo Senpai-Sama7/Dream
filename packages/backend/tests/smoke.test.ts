@@ -43,8 +43,9 @@ describe('CSV Viewer Smoke Test', () => {
 
     const files = response.body.code.files;
     
-    expect(files).toHaveProperty('package.json');
-    expect(files).toHaveProperty('src/App.js');
+    expect(files).toBeDefined();
+    expect(files['package.json']).toBeDefined();
+    expect(files['src/App.js']).toBeDefined();
     expect(files['src/App.js']).toContain('Papa.parse');
     expect(files['src/App.js']).toContain('CSV');
   });
