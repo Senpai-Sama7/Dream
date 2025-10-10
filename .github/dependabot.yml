@@ -1,0 +1,112 @@
+version: 2
+updates:
+  # Root workspace
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps):"
+    
+  # Backend
+  - package-ecosystem: "npm"
+    directory: "/packages/backend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "backend"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/backend):"
+    
+  # Frontend
+  - package-ecosystem: "npm"
+    directory: "/packages/frontend"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "frontend"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/frontend):"
+    
+  # Planner
+  - package-ecosystem: "npm"
+    directory: "/packages/planner"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "planner"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/planner):"
+    
+  # Sandbox
+  - package-ecosystem: "npm"
+    directory: "/packages/sandbox"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "sandbox"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/sandbox):"
+    
+  # Observability
+  - package-ecosystem: "npm"
+    directory: "/packages/observability"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "observability"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/observability):"
+    
+  # Contracts
+  - package-ecosystem: "npm"
+    directory: "/packages/contracts"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "contracts"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/contracts):"
+  
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+      - "ci"
+      - "automated"
+    commit-message:
+      prefix: "chore(deps/actions):"

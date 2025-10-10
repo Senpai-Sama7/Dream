@@ -1,0 +1,19 @@
+{
+  "name": "@dream/observability",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Shared observability library for Dream services",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-node": "^0.52.1",
+    "@opentelemetry/instrumentation-http": "^0.52.1",
+    "@opentelemetry/instrumentation-express": "^0.41.1",
+    "prom-client": "^15.1.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.6",
+    "typescript": "^5.3.3"
+  }
+}

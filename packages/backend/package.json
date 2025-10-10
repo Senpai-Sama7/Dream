@@ -12,6 +12,7 @@
     "lint": "eslint src --ext .ts"
   },
   "dependencies": {
+    "@dream/observability": "*",
     "axios": "^1.6.2",
     "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",

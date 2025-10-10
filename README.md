@@ -14,6 +14,8 @@ The system consists of four main components:
 
 ### Quick Start
 
+#### Local Development (Traditional)
+
 ```bash
 # Install dependencies
 make install
@@ -23,6 +25,24 @@ make dev
 
 # Run smoke test
 make smoke-test
+```
+
+#### Local Development (Docker Compose)
+
+```bash
+# Start all services with Docker
+docker compose -f dev/compose/docker-compose.yml up -d
+
+# Check service health
+curl http://localhost:8080/api/health
+curl http://localhost:8090/health
+curl http://localhost:8070/health
+
+# View logs
+docker compose -f dev/compose/docker-compose.yml logs -f
+
+# Stop services
+docker compose -f dev/compose/docker-compose.yml down
 ```
 
 ## Architecture Diagrams
@@ -175,7 +195,17 @@ sequenceDiagram
 
 ## API Contracts
 
-See [API Documentation](./docs/api-contracts.md) for detailed API specifications.
+### Protobuf Contracts
+
+The project uses Protocol Buffers for service contracts. See `packages/contracts/` for definitions.
+
+```bash
+# Generate code from proto definitions (requires buf CLI)
+cd packages/contracts
+make gen
+```
+
+See [API Documentation](./docs/api-contracts.md) for detailed REST API specifications.
 
 ## Security
 
@@ -186,25 +216,55 @@ The sandbox runtime provides:
 - Resource limits (CPU, memory, disk)
 - Execution timeouts
 
+### Production Security Features
+
+- **Dockerfiles**: Non-root users, minimal alpine images, health checks
+- **Kubernetes**: Pod Security Standards (restricted), Network Policies, seccomp profiles
+- **CI Pipeline**: Trivy vulnerability scanning, automated dependency updates
+- **Observability**: OpenTelemetry tracing, Prometheus metrics on `/metrics` endpoints
+
 ## Development
 
 ### Prerequisites
 - Node.js >= 18
-- Docker (for sandbox)
+- Docker (for sandbox and containerization)
 - npm >= 9
+- buf CLI (for protobuf generation) - optional
 
 ### Project Structure
 ```
 dream/
 ├── packages/
-│   ├── frontend/      # React UI
-│   ├── backend/       # Express API server
-│   ├── planner/       # NLP/AI service
-│   └── sandbox/       # Isolated runtime
-├── docs/              # Documentation
-├── Makefile           # Build automation
-└── package.json       # Root package
+│   ├── frontend/         # React UI
+│   ├── backend/          # Express API server
+│   ├── planner/          # NLP/AI service
+│   ├── sandbox/          # Isolated runtime
+│   ├── contracts/        # Protobuf service contracts
+│   └── observability/    # OpenTelemetry & Prometheus
+├── dev/compose/          # Docker Compose for local dev
+├── deploy/k8s/           # Kubernetes manifests
+├── docs/                 # Documentation
+├── .github/workflows/    # CI/CD pipelines
+├── Makefile              # Build automation
+└── package.json          # Root package
 ```
+
+### Observability
+
+All backend services expose Prometheus metrics:
+
+```bash
+# Backend metrics
+curl http://localhost:8080/metrics
+
+# Planner metrics
+curl http://localhost:8090/metrics
+```
+
+Metrics include:
+- HTTP request counts (by method, route, status)
+- Default Node.js metrics (memory, CPU, GC)
+- OpenTelemetry traces for distributed tracing
 
 ### Running Tests
 ```bash
@@ -215,6 +275,62 @@ make test
 ```bash
 make build
 ```
+
+## Deployment
+
+### Docker Compose (Local/Development)
+
+```bash
+# Start all services
+docker compose -f dev/compose/docker-compose.yml up -d
+
+# Scale a service
+docker compose -f dev/compose/docker-compose.yml up -d --scale backend=3
+
+# View logs
+docker compose -f dev/compose/docker-compose.yml logs -f backend
+```
+
+### Kubernetes (Production)
+
+```bash
+# Deploy to Kubernetes
+kubectl apply -k deploy/k8s/base/
+
+# Check deployment
+kubectl get pods -n dream
+kubectl get services -n dream
+
+# View logs
+kubectl logs -n dream -l app=backend --tail=100
+
+# Scale deployment
+kubectl scale deployment backend -n dream --replicas=3
+```
+
+See [Kubernetes Deployment Guide](./deploy/k8s/README.md) for detailed instructions.
+
+## CI/CD
+
+The project includes a comprehensive CI pipeline (`.github/workflows/ci.yml`):
+
+1. **Build & Test**: Linting, type checking, unit tests across all workspaces
+2. **Docker Compose Integration**: Build and test all services with healthchecks
+3. **Security Scanning**: Trivy vulnerability scanning with SARIF upload
+
+Pipeline runs on:
+- Every pull request
+- Every push to `main` branch
+
+## Maintenance
+
+### Dependency Updates
+
+Dependabot is configured to automatically:
+- Check for npm updates weekly
+- Check for GitHub Actions updates weekly
+- Create PRs with version bumps
+- Label PRs by package/component
 
 ## License
 

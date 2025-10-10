@@ -1,0 +1,12 @@
+version: v1
+name: buf.build/dream/main
+deps: []
+breaking:
+  use:
+    - FILE
+lint:
+  use:
+    - DEFAULT
+build:
+  roots:
+    - proto

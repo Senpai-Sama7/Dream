@@ -1,0 +1,9 @@
+{
+  "name": "@dream/contracts",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Protobuf contracts for Dream services",
+  "scripts": {
+    "gen": "buf generate"
+  }
+}

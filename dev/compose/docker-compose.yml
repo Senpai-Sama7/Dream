@@ -1,0 +1,107 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: ../../packages/backend
+      dockerfile: Dockerfile
+    container_name: dream-backend
+    env_file:
+      - ../../.env.dev
+    environment:
+      - PORT=8080
+      - PLANNER_URL=http://planner:8090
+      - SANDBOX_URL=http://sandbox:8070
+      - NODE_ENV=development
+    ports:
+      - "8080:8080"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/api/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dream-dev
+    depends_on:
+      planner:
+        condition: service_healthy
+      sandbox:
+        condition: service_healthy
+
+  planner:
+    build:
+      context: ../../packages/planner
+      dockerfile: Dockerfile
+    container_name: dream-planner
+    env_file:
+      - ../../.env.dev
+    environment:
+      - PORT=8090
+      - NODE_ENV=development
+    ports:
+      - "8090:8090"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8090/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dream-dev
+
+  sandbox:
+    build:
+      context: ../../packages/sandbox
+      dockerfile: Dockerfile
+    container_name: dream-sandbox
+    env_file:
+      - ../../.env.dev
+    environment:
+      - PORT=8070
+      - NODE_ENV=development
+    ports:
+      - "8070:8070"
+      - "9000-9010:9000-9010"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8070/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dream-dev
+    volumes:
+      - sandbox-runtime:/app/runtime
+
+  frontend:
+    build:
+      context: ../../packages/frontend
+      dockerfile: Dockerfile
+    container_name: dream-frontend
+    env_file:
+      - ../../.env.dev
+    environment:
+      - REACT_APP_API_URL=http://localhost:8080
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - dream-dev
+    depends_on:
+      backend:
+        condition: service_healthy
+
+networks:
+  dream-dev:
+    name: dream-dev
+    driver: bridge
+
+volumes:
+  sandbox-runtime:
+    name: dream-sandbox-runtime

@@ -5,12 +5,17 @@ import rateLimit from 'express-rate-limit';
 import { IntentAnalyzer } from './services/intentAnalyzer';
 import { CodeGenerator } from './services/codeGenerator';
 import { validateAnalyze, validateInfer } from './middleware/validation';
+import { startTelemetry, metricsRegistry, requestCounter } from '@dream/observability';
 import dotenv from 'dotenv';
 
 dotenv.config();
 
 const app: Application = express();
 const PORT = process.env.PORT || 8001;
+
+// Start telemetry
+startTelemetry('planner');
+const reqCounter = requestCounter();
 
 const analyzer = new IntentAnalyzer();
 const generator = new CodeGenerator();
@@ -42,6 +47,24 @@ const plannerRateLimit = rateLimit({
 
 // Body parser with size limits
 app.use(express.json({ limit: '5mb' }));
+
+// Request counting middleware
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    reqCounter.inc({
+      method: req.method,
+      route: req.route?.path || req.path,
+      status: res.statusCode.toString()
+    });
+  });
+  next();
+});
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', metricsRegistry.contentType);
+  res.end(await metricsRegistry.metrics());
+});
 
 app.post('/analyze', plannerRateLimit, validateAnalyze, async (req: Request, res: Response) => {
   try {

@@ -1,0 +1,41 @@
+# Code Owners for Dream Repository
+# These owners will be requested for review when PRs touch these paths
+
+# Global owners (fallback)
+* @Senpai-Sama7
+
+# Infrastructure and deployment
+/.github/ @Senpai-Sama7
+/deploy/ @Senpai-Sama7
+/dev/compose/ @Senpai-Sama7
+Dockerfile @Senpai-Sama7
+docker-compose.yml @Senpai-Sama7
+
+# Backend service
+/packages/backend/ @Senpai-Sama7
+
+# Frontend application
+/packages/frontend/ @Senpai-Sama7
+
+# Planner service
+/packages/planner/ @Senpai-Sama7
+
+# Sandbox runtime
+/packages/sandbox/ @Senpai-Sama7
+
+# Contracts and APIs
+/packages/contracts/ @Senpai-Sama7
+/docs/api-contracts.md @Senpai-Sama7
+
+# Observability
+/packages/observability/ @Senpai-Sama7
+
+# Security and dependencies
+/package.json @Senpai-Sama7
+/package-lock.json @Senpai-Sama7
+/.github/dependabot.yml @Senpai-Sama7
+/.github/workflows/ @Senpai-Sama7
+
+# Documentation
+/docs/ @Senpai-Sama7
+*.md @Senpai-Sama7
