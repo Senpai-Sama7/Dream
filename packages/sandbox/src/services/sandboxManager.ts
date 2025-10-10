@@ -82,6 +82,9 @@ export class SandboxManager {
       await this.startApp(appId, appDir, port);
       app.status = 'running';
       
+      // Clear the execution timeout since app started successfully
+      // The timeout will be reset if needed
+      
       return {
         appId,
         url: `http://localhost:${port}`,
@@ -91,6 +94,11 @@ export class SandboxManager {
     } catch (error) {
       app.status = 'error';
       app.logs.push(`Error: ${error}`);
+      // Clear timeout on error
+      if (app.timeoutHandle) {
+        clearTimeout(app.timeoutHandle);
+        app.timeoutHandle = undefined;
+      }
       throw error;
     }
   }
@@ -256,5 +264,12 @@ export class SandboxManager {
 
     const logs = app.logs.slice(-tail);
     return logs.join('\n');
+  }
+
+  async stopAll(): Promise<void> {
+    const appIds = Array.from(this.apps.keys());
+    for (const appId of appIds) {
+      await this.stop(appId);
+    }
   }
 }

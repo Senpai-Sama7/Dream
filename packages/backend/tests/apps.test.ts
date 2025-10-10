@@ -85,7 +85,9 @@ describe('App Routes', () => {
         .expect(400);
 
       expect(response.body).toHaveProperty('error');
-      expect(response.body.error).toBe('Prompt is required');
+      // Validation middleware returns 'Validation failed' as error
+      expect(response.body.error).toBe('Validation failed');
+      expect(response.body).toHaveProperty('details');
     });
 
     it('should return 500 on controller error', async () => {
@@ -137,15 +139,13 @@ describe('App Routes', () => {
     });
 
     it('should handle invalid pagination parameters', async () => {
-      const mockResult = { apps: [], total: 0 };
-      mockListApps.mockReturnValue(mockResult);
-
-      await request(app)
+      // With validation, invalid parameters should return 400
+      const response = await request(app)
         .get('/api/apps?limit=invalid&offset=also-invalid')
-        .expect(200);
+        .expect(400);
 
-      // Should use NaN which becomes 0 for offset and default for limit
-      expect(mockListApps).toHaveBeenCalled();
+      expect(response.body).toHaveProperty('error');
+      expect(response.body.error).toBe('Validation failed');
     });
 
     it('should return 500 on controller error', async () => {
